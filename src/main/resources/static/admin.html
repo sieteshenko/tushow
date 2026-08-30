@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Administración | TuShow</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f5f7;
+            color: #222;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 20px 30px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        header p {
+            margin: 5px 0 0;
+            color: #cbd5e1;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .toolbar h2 {
+            margin: 0;
+        }
+
+        .btn-refresh {
+            border: 0;
+            background: #374151;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-refresh:hover {
+            background: #1f2937;
+        }
+
+        #loading,
+        #empty,
+        #error {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        #error {
+            color: #b91c1c;
+            display: none;
+        }
+
+        #empty {
+            display: none;
+        }
+
+        .artist-card {
+            background: white;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        }
+
+        .artist-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .artist-title {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .artist-icon {
+            font-size: 42px;
+        }
+
+        .artist-title h3 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .artist-title small {
+            color: #6b7280;
+        }
+
+        .badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .section {
+            margin: 18px 0;
+        }
+
+        .section h4 {
+            margin: 0 0 8px;
+            font-size: 15px;
+            color: #374151;
+        }
+
+        .section p {
+            margin: 4px 0;
+            line-height: 1.5;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .meta-item {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .meta-item strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+
+        .packages {
+            display: grid;
+            gap: 10px;
+        }
+
+        .package {
+            background: #f9fafb;
+            padding: 12px 14px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .package-name {
+            font-weight: bold;
+        }
+
+        .package-price {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .dates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .date-chip {
+            background: #e0f2fe;
+            color: #075985;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 13px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 20px;
+            padding-top: 20px;
+        }
+
+        button {
+            font-size: 14px;
+        }
+
+        .btn-approve,
+        .btn-reject {
+            border: none;
+            padding: 11px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-approve {
+            background: #16a34a;
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #15803d;
+        }
+
+        .btn-reject {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #b91c1c;
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            .artist-header {
+                flex-direction: column;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn-approve,
+            .btn-reject {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>🎭 TuShow Admin</h1>
+    <p>Administración de solicitudes de artistas</p>
+</header>
+
+<main>
+
+    <div class="toolbar">
+        <h2>Solicitudes pendientes</h2>
+
+        <button class="btn-refresh" onclick="cargarPendientes()">
+            🔄 Actualizar
+        </button>
+    </div>
+
+    <div id="loading">
+        Cargando solicitudes...
+    </div>
+
+    <div id="error"></div>
+
+    <div id="empty">
+        🎉 No hay solicitudes pendientes.
+    </div>
+
+    <div id="artists"></div>
+
+</main>
+
+<script>
+
+    document.addEventListener('DOMContentLoaded', cargarPendientes);
+
+    async function cargarPendientes() {
+
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const empty = document.getElementById('empty');
+        const container = document.getElementById('artists');
+
+        loading.style.display = 'block';
+        error.style.display = 'none';
+        empty.style.display = 'none';
+        container.innerHTML = '';
+
+        try {
+
+            const response = await fetch('/api/admin/artistas/pendientes');
+
+            if (!response.ok) {
+                throw new Error(
+                    'Error al obtener solicitudes. HTTP ' + response.status
+                );
+            }
+
+            const artistas = await response.json();
+
+            loading.style.display = 'none';
+
+            if (!artistas.length) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            artistas.forEach(artista => {
+                container.appendChild(crearTarjeta(artista));
+            });
+
+        } catch (e) {
+
+            console.error(e);
+
+            loading.style.display = 'none';
+
+            error.textContent =
+                'No se pudieron cargar las solicitudes: ' + e.message;
+
+            error.style.display = 'block';
+        }
+    }
+
+
+    function crearTarjeta(artista) {
+
+        const card = document.createElement('div');
+        card.className = 'artist-card';
+
+        const categorias =
+            artista.categorias?.length
+                ? artista.categorias.join(', ')
+                : 'Sin categoría';
+
+        const paquetesHtml =
+            artista.paquetes?.length
+                ? artista.paquetes.map(p => `
+                    <div class="package">
+                        <div>
+                            <div class="package-name">
+                                ${escapeHtml(p.nombre)}
+                            </div>
+
+                            <div>
+                                ${p.duracionMinutos ?? '-'} minutos
+                            </div>
+                        </div>
+
+                        <div class="package-price">
+                            ${formatearDinero(p.precio, p.moneda)}
+                        </div>
+                    </div>
+                `).join('')
+                : '<p>No tiene paquetes registrados.</p>';
+
+        const fechasHtml =
+            artista.fechasDisponibles?.length
+                ? artista.fechasDisponibles.map(fecha => `
+                    <span class="date-chip">
+                        ${formatearFecha(fecha)}
+                    </span>
+                `).join('')
+                : '<span>Sin fechas disponibles.</span>';
+
+
+        card.innerHTML = `
+
+            <div class="artist-header">
+
+                <div class="artist-title">
+
+                    <div class="artist-icon">
+                        ${artista.icono || '🎤'}
+                    </div>
+
+                    <div>
+                        <h3>${escapeHtml(artista.nombreArtistico)}</h3>
+                        <small>${escapeHtml(artista.slug || '')}</small>
+                    </div>
+
+                </div>
+
+                <span class="badge">
+                    PENDIENTE DE REVISIÓN
+                </span>
+
+            </div>
+
+
+            <div class="meta-grid">
+
+                <div class="meta-item">
+                    <strong>Categoría</strong>
+                    ${escapeHtml(categorias)}
+                </div>
+
+                <div class="meta-item">
+                    <strong>Región</strong>
+                    ${escapeHtml(artista.region || '-')}
+                </div>
+
+                <div class="meta-item">
+                    <strong>Comuna</strong>
+                    ${escapeHtml(artista.comuna || '-')}
+                </div>
+                <div class="meta-item">
+                        <strong>Contacto</strong>
+                        ${escapeHtml(artista.nombreContacto || '-')}
+                    </div>
+
+                    <div class="meta-item">
+                        <strong>Correo</strong>
+                        ${escapeHtml(artista.correoContacto || '-')}
+                    </div>
+
+                    <div class="meta-item">
+                        <strong>Teléfono</strong>
+                        ${escapeHtml(artista.telefonoContacto || '-')}
+                    </div>
+
+            </div>
+
+
+            <div class="section">
+
+                <h4>Sobre el show</h4>
+
+                <p>
+                    ${escapeHtml(
+            artista.biografia || 'Sin descripción.'
+        )}
+                </p>
+
+            </div>
+
+
+            <div class="section">
+
+                <h4>Paquetes</h4>
+
+                <div class="packages">
+                    ${paquetesHtml}
+                </div>
+
+            </div>
+
+
+            <div class="section">
+
+                <h4>Disponibilidad</h4>
+
+                <div class="dates">
+                    ${fechasHtml}
+                </div>
+
+            </div>
+
+
+            <div class="actions">
+
+                <button
+                    class="btn-reject"
+                    onclick="rechazarArtista(${artista.id}, this)">
+                    ❌ Rechazar
+                </button>
+
+                <button
+                    class="btn-approve"
+                    onclick="aprobarArtista(${artista.id}, this)">
+                    ✅ Aprobar
+                </button>
+
+            </div>
+        `;
+
+        return card;
+    }
+
+
+    async function aprobarArtista(id, boton) {
+
+        const confirmar =
+            confirm('¿Aprobar y publicar este artista?');
+
+        if (!confirmar) {
+            return;
+        }
+
+        await cambiarEstado(
+            id,
+            'aprobar',
+            boton,
+            'Artista aprobado correctamente.'
+        );
+    }
+
+
+    async function rechazarArtista(id, boton) {
+
+        const motivo = prompt(
+            'Indica el motivo por el que rechazas esta solicitud:'
+        );
+
+        if (motivo === null) {
+            return;
+        }
+
+        if (!motivo.trim()) {
+            alert('Debes indicar un motivo de rechazo.');
+            return;
+        }
+
+        const card = boton.closest('.artist-card');
+        const botones = card.querySelectorAll('button');
+
+        botones.forEach(b => b.disabled = true);
+
+        try {
+
+            const response = await fetch(
+                `/api/admin/artistas/${id}/rechazar`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        motivo: motivo.trim()
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+
+            alert('Solicitud rechazada.');
+
+            card.remove();
+            comprobarListaVacia();
+
+        } catch (e) {
+
+            console.error(e);
+
+            alert('No se pudo rechazar la solicitud: ' + e.message);
+
+            botones.forEach(b => b.disabled = false);
+        }
+    }
+
+
+    async function cambiarEstado(id, accion, boton, mensaje) {
+
+        const card = boton.closest('.artist-card');
+
+        const botones =
+            card.querySelectorAll('button');
+
+        botones.forEach(b => b.disabled = true);
+
+        try {
+
+            const response = await fetch(
+                `/api/admin/artistas/${id}/${accion}`,
+                {
+                    method: 'PATCH'
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    'HTTP ' + response.status
+                );
+            }
+
+            alert(mensaje);
+
+            card.remove();
+
+            comprobarListaVacia();
+
+        } catch (e) {
+
+            console.error(e);
+
+            alert(
+                'No se pudo realizar la operación: ' +
+                e.message
+            );
+
+            botones.forEach(b => b.disabled = false);
+        }
+    }
+
+
+    function comprobarListaVacia() {
+
+        const container =
+            document.getElementById('artists');
+
+        if (
+            container.querySelectorAll('.artist-card').length === 0
+        ) {
+            document.getElementById('empty')
+                .style.display = 'block';
+        }
+    }
+
+
+    function formatearDinero(valor, moneda = 'CLP') {
+
+        if (valor == null) {
+            return '-';
+        }
+
+        return new Intl.NumberFormat(
+            'es-CL',
+            {
+                style: 'currency',
+                currency: moneda || 'CLP',
+                maximumFractionDigits: 0
+            }
+        ).format(valor);
+    }
+
+
+    function formatearFecha(fecha) {
+
+        if (!fecha) {
+            return '-';
+        }
+
+        /*
+         * Evitamos new Date("2026-09-12") directamente
+         * porque UTC puede cambiar el día según zona horaria.
+         */
+
+        const [year, month, day] =
+            fecha.split('-').map(Number);
+
+        return new Intl.DateTimeFormat(
+            'es-CL',
+            {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }
+        ).format(
+            new Date(year, month - 1, day)
+        );
+    }
+
+
+    function escapeHtml(valor) {
+
+        if (valor == null) {
+            return '';
+        }
+
+        const div =
+            document.createElement('div');
+
+        div.textContent =
+            String(valor);
+
+        return div.innerHTML;
+    }
+
+</script>
+
+</body>
+</html>

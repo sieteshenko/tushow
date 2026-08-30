@@ -220,6 +220,17 @@
       <div class="form-box">
         <label>Nombre artístico</label>
         <input id="p-name" placeholder="Ej: Trío Andino, Mago Fabián...">
+        <label>Nombre de contacto</label>
+        <input id="p-contact-name" placeholder="Ej: Felipe Cortés">
+
+        <label>Correo de contacto</label>
+        <input id="p-contact-email"
+               type="email"
+               placeholder="artista@correo.cl">
+
+        <label>Teléfono de contacto</label>
+        <input id="p-contact-phone"
+               placeholder="+56 9 1234 5678">
         <label>Categoría</label>
         <select id="p-cat">
           <option>Música en vivo</option><option>Stand up comedy</option><option>Magia</option>
@@ -249,7 +260,7 @@
         <div class="cal-title">Marca tus días disponibles</div>
         <div class="cal-nav" id="p-cal-nav"></div>
         <div class="cal-grid" id="p-cal"></div>
-        <button class="btn-primary" id="p-submit">Publicar mi perfil</button>
+        <button class="btn-primary" id="p-submit">Enviar solicitud</button>
         <div id="p-msg" class="section-sub" style="margin-top:10px;"></div>
       </div>
     </section>
@@ -442,6 +453,23 @@ function populatePublishLocation(){
   };
   pr.addEventListener('change', fillCities);
   fillCities();
+}
+
+async function crearArtista(request) {
+
+  const response = await fetch('/api/artistas', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo registrar el artista');
+  }
+
+  return await response.json();
 }
 
 /* ---------- MARQUEE / HERO ---------- */
@@ -872,34 +900,102 @@ function renderPublishCalendar(){
 }
 
 async function handlePublish(){
+
   const name = document.getElementById('p-name').value.trim();
+  const contactName = document.getElementById('p-contact-name').value.trim();
+  const contactEmail = document.getElementById('p-contact-email').value.trim();
+  const contactPhone = document.getElementById('p-contact-phone').value.trim();
+
   const bio = document.getElementById('p-bio').value.trim();
+  const category = document.getElementById('p-cat').value;
+  const region = document.getElementById('p-region').value;
+  const city = document.getElementById('p-city').value;
+  const emoji = document.getElementById('p-emoji').value;
+
   const msg = document.getElementById('p-msg');
-  const validPkgs = publishPackages.filter(p=>p.label && p.minutes>0 && p.price>0);
-  if(!name || !bio){ msg.textContent = "Completa nombre y descripción."; return; }
-  if(validPkgs.length === 0){ msg.textContent = "Agrega al menos una opción de duración y precio válida."; return; }
-  if(publishDates.size === 0){ msg.textContent = "Selecciona al menos un día disponible."; return; }
-  const featured = document.getElementById('p-featured').checked;
-  const artist = {
-    id: uid(), name, category: document.getElementById('p-cat').value,
-    region: document.getElementById('p-region').value, city: document.getElementById('p-city').value,
-    emoji: document.getElementById('p-emoji').value, bio,
-    packages: validPkgs.map(p=>({id:uid(), label:p.label, minutes:p.minutes, price:p.price})),
-    featured, completedShows:0, gallery: randomGallery(), reviews:[],
-    dates: [...publishDates].sort()
+  const btn = document.getElementById('p-submit');
+
+  const validPkgs = publishPackages.filter(
+          p => p.label && p.minutes > 0 && p.price > 0
+  );
+
+  if(!name || !contactName || !contactEmail || !bio){
+    msg.textContent = "Completa nombre artístico, nombre de contacto, correo y descripción.";
+    return;
+  }
+
+  if(validPkgs.length === 0){
+    msg.textContent = "Agrega al menos una opción de duración y precio válida.";
+    return;
+  }
+
+  if(publishDates.size === 0){
+    msg.textContent = "Selecciona al menos un día disponible.";
+    return;
+  }
+
+  const request = {
+    nombreArtistico: name,
+    nombreContacto: contactName,
+    correoContacto: contactEmail,
+    telefonoContacto: contactPhone || null,
+    biografia: bio,
+    region: region,
+    comuna: city,
+    icono: emoji,
+    categoria: category,
+
+    paquetes: validPkgs.map(p => ({
+      nombre: p.label,
+      duracionMinutos: Number(p.minutes),
+      precio: Number(p.price)
+    })),
+
+    fechasDisponibles: [...publishDates].sort()
   };
-  await loadArtists();
-  ARTISTS.push(artist);
-  await saveArtists();
-  msg.textContent = featured ? "¡Listo! Tu show está publicado y destacado en la portada." : "¡Listo! Tu show ya está publicado y visible en Explorar.";
-  document.getElementById('p-name').value = ""; document.getElementById('p-bio').value = "";
-  document.getElementById('p-featured').checked = false;
-  publishPackages = [{label:"Show mínimo", minutes:15, price:0}];
-  renderPublishPackages();
-  publishDates = new Set();
-  renderPublishCalendar();
-  renderGrid();
-  renderMarquee();
+
+  try {
+
+    btn.disabled = true;
+    btn.textContent = "Enviando solicitud...";
+    msg.textContent = "Registrando artista...";
+
+    const artista = await crearArtista(request);
+
+    msg.textContent =
+            `¡Solicitud recibida! ${artista.nombreArtistico} quedó pendiente de revisión.`;
+
+    document.getElementById('p-name').value = "";
+    document.getElementById('p-contact-name').value = "";
+    document.getElementById('p-contact-email').value = "";
+    document.getElementById('p-contact-phone').value = "";
+    document.getElementById('p-bio').value = "";
+
+    publishPackages = [
+      {
+        label: "Show mínimo",
+        minutes: 15,
+        price: 0
+      }
+    ];
+
+    renderPublishPackages();
+
+    publishDates = new Set();
+    renderPublishCalendar();
+
+  } catch(e) {
+
+    console.error('Error registrando artista:', e);
+
+    msg.textContent =
+            'No pudimos registrar el artista: ' + e.message;
+
+  } finally {
+
+    btn.disabled = false;
+    btn.textContent = "Enviar solicitud";
+  }
 }
 
 /* ---------- RESERVAS ---------- */

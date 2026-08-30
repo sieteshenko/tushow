@@ -4,5 +4,7 @@ public enum EstadoArtista {
     BORRADOR,
     PUBLICADO,
     SUSPENDIDO,
-    INACTIVO
+    INACTIVO,
+    RECHAZADO,
+    PENDIENTE_REVISION
 }

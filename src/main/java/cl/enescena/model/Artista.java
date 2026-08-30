@@ -49,6 +49,18 @@ public class Artista {
     @Column(name = "fecha_creacion", insertable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
+    @Column(name = "nombre_contacto")
+    private String nombreContacto;
+
+    @Column(name = "correo_contacto")
+    private String correoContacto;
+
+    @Column(name = "telefono_contacto")
+    private String telefonoContacto;
+
+    @Column(name = "motivo_rechazo")
+    private String motivoRechazo;
+
     @Column(
             name = "fecha_actualizacion",
             insertable = false,

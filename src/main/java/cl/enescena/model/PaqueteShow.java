@@ -22,6 +22,7 @@ public class PaqueteShow {
 
     private String nombre;
 
+    @Column(name = "descripcion")
     private String descripcion;
 
     @Column(name = "duracion_minutos")

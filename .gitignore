@@ -1,0 +1,22 @@
+# Maven
+target/
+
+# IntelliJ
+../.idea/
+*.iml
+
+# Configuración local / secretos
+.env
+src/main/resources/application-local.properties
+
+# Claves / archivos locales
+/y
+/y.pub
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Temporales
+*.tmp
+*.swp
