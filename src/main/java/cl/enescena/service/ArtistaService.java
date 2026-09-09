@@ -88,7 +88,7 @@ public class ArtistaService {
         artista.setCorreoContacto(request.correoContacto());
         artista.setTelefonoContacto(request.telefonoContacto());
 
-        artista.setDestacado(false);
+        artista.setDestacado(Boolean.TRUE.equals(request.destacado()));
         artista.setShowsRealizados(0);
 
         // No aparece públicamente todavía.
@@ -111,10 +111,7 @@ public class ArtistaService {
             paquete.setMoneda("CLP");
             paquete.setActivo(true);
             paquete.setOrden(orden++);
-            paquete.setDescripcion(request.biografia());
-
-            System.out.println("BIO REQUEST      = [" + request.biografia() + "]");
-            System.out.println("DESCRIPCION PKG  = [" + paquete.getDescripcion() + "]");
+            paquete.setDescripcion(p.descripcion());
 
             paqueteShowRepository.save(paquete);
         }
@@ -184,6 +181,7 @@ public class ArtistaService {
                         new PaqueteShowResponse(
                                 paquete.getId(),
                                 paquete.getNombre(),
+                                paquete.getDescripcion(),
                                 paquete.getDuracionMinutos(),
                                 paquete.getPrecio(),
                                 paquete.getMoneda()
@@ -280,6 +278,7 @@ public class ArtistaService {
                         new PaqueteShowResponse(
                                 paquete.getId(),
                                 paquete.getNombre(),
+                                paquete.getDescripcion(),
                                 paquete.getDuracionMinutos(),
                                 paquete.getPrecio(),
                                 paquete.getMoneda()

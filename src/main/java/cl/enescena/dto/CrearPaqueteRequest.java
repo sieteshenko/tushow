@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 
 public record CrearPaqueteRequest(
         String nombre,
+        String descripcion,
         Integer duracionMinutos,
-        BigDecimal precio,
-        String biografia
+        BigDecimal precio
 ) {
 }

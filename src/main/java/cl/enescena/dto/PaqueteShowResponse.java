@@ -11,6 +11,7 @@ public class PaqueteShowResponse {
 
     private Long id;
     private String nombre;
+    private String descripcion;
     private Integer duracionMinutos;
     private BigDecimal precio;
     private String moneda;

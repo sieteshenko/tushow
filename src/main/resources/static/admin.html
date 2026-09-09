@@ -181,6 +181,20 @@
             font-weight: bold;
         }
 
+        .package-duration {
+            margin-top: 3px;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .package-description {
+            margin-top: 7px;
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.4;
+            white-space: pre-line;
+        }
+
         .package-price {
             font-weight: bold;
             white-space: nowrap;
@@ -359,22 +373,26 @@
         const paquetesHtml =
             artista.paquetes?.length
                 ? artista.paquetes.map(p => `
-                    <div class="package">
-                        <div>
-                            <div class="package-name">
-                                ${escapeHtml(p.nombre)}
-                            </div>
-
-                            <div>
-                                ${p.duracionMinutos ?? '-'} minutos
-                            </div>
-                        </div>
-
-                        <div class="package-price">
-                            ${formatearDinero(p.precio, p.moneda)}
-                        </div>
+            <div class="package">
+                <div>
+                    <div class="package-name">
+                        ${escapeHtml(p.nombre)}
                     </div>
-                `).join('')
+
+                    <div class="package-duration">
+                        ${p.duracionMinutos ?? '-'} minutos
+                    </div>
+
+                    <div class="package-description">
+                        ${escapeHtml(p.descripcion || 'Sin descripción.')}
+                    </div>
+                </div>
+
+                <div class="package-price">
+                    ${formatearDinero(p.precio, p.moneda)}
+                </div>
+            </div>
+        `).join('')
                 : '<p>No tiene paquetes registrados.</p>';
 
         const fechasHtml =

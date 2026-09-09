@@ -13,6 +13,7 @@ public record CrearArtistaRequest(
         String comuna,
         String categoria,
         String icono,
+        Boolean destacado,
         List<CrearPaqueteRequest> paquetes,
         List<LocalDate> fechasDisponibles
 ) {

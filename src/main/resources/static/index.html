@@ -120,6 +120,12 @@
   .btn-mini{background:var(--bg-soft); border:1px solid var(--line); color:var(--gold); padding:8px 12px; border-radius:8px; font-size:12px; font-weight:600;}
   .pkg-row{display:grid; grid-template-columns:1.4fr 0.8fr 0.9fr auto; gap:8px; margin-bottom:8px; align-items:center;}
   .pkg-row input{padding:9px 10px; font-size:13px;}
+  .pkg-row .pk-description {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 65px;
+    resize: vertical;
+  }
   .checkbox-row{display:flex; align-items:flex-start; gap:10px; margin-top:16px; background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:12px;}
   .checkbox-row input{width:auto; margin-top:3px;}
   .checkbox-row span{font-size:13px; color:var(--muted);}
@@ -337,7 +343,12 @@ let selectedPkgId = null;
 let detailCalDate = new Date();
 let publishCalDate = new Date();
 let publishDates = new Set();
-let publishPackages = [{label:"Show mínimo", minutes:15, price:0}];
+publishPackages = [{
+  label: "Show mínimo",
+  description: "",
+  minutes: 15,
+  price: 0
+}];
 let marqueeIndex = 0;
 let marqueeTimer = null;
 let reviewSort = "recientes";
@@ -385,6 +396,7 @@ async function loadArtists(){
       packages: (a.paquetes || []).map(p => ({
         id: String(p.id),
         label: p.nombre,
+        description: p.descripcion || '',
         minutes: p.duracionMinutos,
         price: Number(p.precio),
         currency: p.moneda
@@ -625,7 +637,13 @@ function renderDetail(){
   const pkgList = document.getElementById('pkg-list');
   pkgList.innerHTML = (a.packages||[]).map(p=>`
     <div class="pkg-opt ${p.id===selectedPkgId?'selected':''}" data-id="${p.id}">
-      <div><b>${p.label}</b><br><span class="pmin">${p.minutes} minutos</span></div>
+      <div>
+    <b>${p.label}</b><br>
+    <span class="pmin">${p.minutes} minutos</span>
+    ${p.description
+          ? `<div class="pmin" style="margin-top:4px;">${p.description}</div>`
+          : ''}
+</div>
       <div class="pprice">${fmtCLP(p.price)}</div>
     </div>`).join('');
   pkgList.querySelectorAll('.pkg-opt').forEach(el=>{
@@ -873,17 +891,57 @@ function renderReviews(){
 /* ---------- PUBLICAR ---------- */
 function renderPublishPackages(){
   const wrap = document.getElementById('p-packages');
+
   wrap.innerHTML = publishPackages.map((p,i)=>`
     <div class="pkg-row" data-i="${i}">
-      <input class="pk-label" placeholder="Ej: Show mínimo" value="${p.label}">
-      <input class="pk-min" type="number" min="1" placeholder="Minutos" value="${p.minutes||''}">
-      <input class="pk-price" type="number" min="0" step="1000" placeholder="Precio CLP" value="${p.price||''}">
-      <button type="button" class="btn-mini" data-remove="${i}">✕</button>
-    </div>`).join('');
-  wrap.querySelectorAll('.pk-label').forEach((el,i)=> el.addEventListener('input', ()=> publishPackages[i].label = el.value));
-  wrap.querySelectorAll('.pk-min').forEach((el,i)=> el.addEventListener('input', ()=> publishPackages[i].minutes = parseInt(el.value||'0',10)));
-  wrap.querySelectorAll('.pk-price').forEach((el,i)=> el.addEventListener('input', ()=> publishPackages[i].price = parseInt(el.value||'0',10)));
-  wrap.querySelectorAll('[data-remove]').forEach(btn=> btn.addEventListener('click', ()=>{ publishPackages.splice(parseInt(btn.dataset.remove,10),1); renderPublishPackages(); }));
+      <input class="pk-label"
+             placeholder="Ej: Show acústico"
+             value="${p.label || ''}">
+
+      <input class="pk-min"
+             type="number"
+             min="1"
+             placeholder="Minutos"
+             value="${p.minutes || ''}">
+
+      <input class="pk-price"
+             type="number"
+             min="0"
+             step="1000"
+             placeholder="Precio CLP"
+             value="${p.price || ''}">
+
+      <button type="button"
+              class="btn-mini"
+              data-remove="${i}">✕</button>
+
+      <textarea class="pk-description"
+                placeholder="Describe esta opción de show">${p.description || ''}</textarea>
+    </div>
+  `).join('');
+
+  wrap.querySelectorAll('.pk-label').forEach((el,i)=>
+          el.addEventListener('input', ()=> publishPackages[i].label = el.value)
+  );
+
+  wrap.querySelectorAll('.pk-description').forEach((el,i)=>
+          el.addEventListener('input', ()=> publishPackages[i].description = el.value)
+  );
+
+  wrap.querySelectorAll('.pk-min').forEach((el,i)=>
+          el.addEventListener('input', ()=> publishPackages[i].minutes = parseInt(el.value||'0',10))
+  );
+
+  wrap.querySelectorAll('.pk-price').forEach((el,i)=>
+          el.addEventListener('input', ()=> publishPackages[i].price = parseInt(el.value||'0',10))
+  );
+
+  wrap.querySelectorAll('[data-remove]').forEach(btn=>
+          btn.addEventListener('click', ()=>{
+            publishPackages.splice(parseInt(btn.dataset.remove,10),1);
+            renderPublishPackages();
+          })
+  );
 }
 function renderPublishCalendar(){
   renderCalNav('p-cal-nav', publishCalDate,
@@ -911,6 +969,7 @@ async function handlePublish(){
   const region = document.getElementById('p-region').value;
   const city = document.getElementById('p-city').value;
   const emoji = document.getElementById('p-emoji').value;
+  const featured = document.getElementById('p-featured').checked;
 
   const msg = document.getElementById('p-msg');
   const btn = document.getElementById('p-submit');
@@ -944,9 +1003,11 @@ async function handlePublish(){
     comuna: city,
     icono: emoji,
     categoria: category,
+    destacado: featured,
 
     paquetes: validPkgs.map(p => ({
       nombre: p.label,
+      descripcion: p.description,
       duracionMinutos: Number(p.minutes),
       precio: Number(p.price)
     })),
@@ -1048,7 +1109,15 @@ document.getElementById('f-cat').addEventListener('change', renderGrid);
 document.getElementById('f-region').addEventListener('change', renderGrid);
 document.getElementById('f-date').addEventListener('change', renderGrid);
 document.getElementById('p-submit').addEventListener('click', handlePublish);
-document.getElementById('p-add-pkg').addEventListener('click', ()=>{ publishPackages.push({label:"", minutes:null, price:null}); renderPublishPackages(); });
+document.getElementById('p-add-pkg').addEventListener('click', ()=>{
+  publishPackages.push({
+    label: "",
+    description: "",
+    minutes: null,
+    price: null
+  });
+  renderPublishPackages();
+});
 document.getElementById('r-search').addEventListener('click', handleSearchBookings);
 
 (async function init(){
