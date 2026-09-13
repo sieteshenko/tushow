@@ -57,13 +57,13 @@ public class ArtistaService {
             );
         }
 
-        if (request.fechasDisponibles() == null ||
-                request.fechasDisponibles().isEmpty()) {
+        if (request.disponibilidades() == null ||
+                request.disponibilidades().isEmpty()) {
+
             throw new IllegalArgumentException(
                     "Debes agregar al menos una fecha disponible"
             );
         }
-
         Categoria categoria = categoriaRepository
                 .findByNombre(request.categoria())
                 .orElseThrow(() ->
@@ -116,11 +116,29 @@ public class ArtistaService {
             paqueteShowRepository.save(paquete);
         }
 
-        for (LocalDate fecha : request.fechasDisponibles()) {
+        for (CrearDisponibilidadRequest d : request.disponibilidades()) {
 
-            if (fecha.isBefore(LocalDate.now())) {
+            if (d.fecha() == null) {
                 throw new IllegalArgumentException(
-                        "La fecha " + fecha + " ya pasó"
+                        "La fecha disponible es obligatoria"
+                );
+            }
+
+            if (d.fecha().isBefore(LocalDate.now())) {
+                throw new IllegalArgumentException(
+                        "La fecha " + d.fecha() + " ya pasó"
+                );
+            }
+
+            if (d.horaDesde() == null || d.horaHasta() == null) {
+                throw new IllegalArgumentException(
+                        "Debes indicar hora de inicio y término para " + d.fecha()
+                );
+            }
+
+            if (!d.horaHasta().isAfter(d.horaDesde())) {
+                throw new IllegalArgumentException(
+                        "La hora de término debe ser posterior a la hora de inicio"
                 );
             }
 
@@ -128,7 +146,10 @@ public class ArtistaService {
                     new DisponibilidadArtista();
 
             disponibilidad.setArtista(artista);
-            disponibilidad.setFechaDisponible(fecha);
+            disponibilidad.setFechaDisponible(d.fecha());
+            disponibilidad.setHoraDesde(d.horaDesde());
+            disponibilidad.setHoraHasta(d.horaHasta());
+
             disponibilidad.setEstado(
                     EstadoDisponibilidad.DISPONIBLE
             );
@@ -189,14 +210,26 @@ public class ArtistaService {
                 )
                 .toList();
 
-        List<LocalDate> fechasDisponibles = artista.getDisponibilidades()
-                .stream()
-                .filter(disponibilidad ->
-                        disponibilidad.getEstado() == EstadoDisponibilidad.DISPONIBLE
-                )
-                .map(DisponibilidadArtista::getFechaDisponible)
-                .sorted()
-                .toList();
+        List<DisponibilidadResponse> disponibilidades =
+                artista.getDisponibilidades()
+                        .stream()
+                        .filter(disponibilidad ->
+                                disponibilidad.getEstado()
+                                        == EstadoDisponibilidad.DISPONIBLE
+                        )
+                        .sorted(
+                                java.util.Comparator.comparing(
+                                        DisponibilidadArtista::getFechaDisponible
+                                )
+                        )
+                        .map(disponibilidad ->
+                                new DisponibilidadResponse(
+                                        disponibilidad.getFechaDisponible(),
+                                        disponibilidad.getHoraDesde(),
+                                        disponibilidad.getHoraHasta()
+                                )
+                        )
+                        .toList();
 
         return new ArtistaResponse(
                 artista.getId(),
@@ -210,7 +243,7 @@ public class ArtistaService {
                 artista.getDestacado(),
                 categorias,
                 paquetes,
-                fechasDisponibles
+                disponibilidades
         );
     }
 

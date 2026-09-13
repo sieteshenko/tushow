@@ -15,6 +15,6 @@ public record CrearArtistaRequest(
         String icono,
         Boolean destacado,
         List<CrearPaqueteRequest> paquetes,
-        List<LocalDate> fechasDisponibles
+        List<CrearDisponibilidadRequest> disponibilidades
 ) {
 }

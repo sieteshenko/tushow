@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -38,7 +40,8 @@ public class ReservaService {
     @Transactional
     public ReservaResponse crear(CrearReservaRequest request) {
 
-        Artista artista = artistaRepository.findById(request.getArtistaId())
+        Artista artista = artistaRepository
+                .findById(request.getArtistaId())
                 .orElseThrow(() ->
                         new RuntimeException("Artista no encontrado")
                 );
@@ -68,6 +71,75 @@ public class ReservaService {
                                 )
                         );
 
+        /*
+         * VALIDACIÓN DE HORARIO
+         */
+        LocalTime horaInicio = request.getHoraEvento();
+
+        if (horaInicio == null) {
+            throw new RuntimeException(
+                    "Debes seleccionar una hora para el evento"
+            );
+        }
+
+        if (disponibilidad.getHoraDesde() == null ||
+                disponibilidad.getHoraHasta() == null) {
+
+            throw new RuntimeException(
+                    "El artista no tiene un rango horario configurado para esta fecha"
+            );
+        }
+
+        LocalTime horaFin =
+                horaInicio.plusMinutes(paquete.getDuracionMinutos());
+
+        if (horaInicio.isBefore(disponibilidad.getHoraDesde()) ||
+                horaFin.isAfter(disponibilidad.getHoraHasta())) {
+
+            throw new RuntimeException(
+                    "El horario seleccionado está fuera de la disponibilidad del artista"
+            );
+        }
+
+        /*
+         * VALIDAR CRUCE CON OTRAS RESERVAS
+         */
+        var reservasDelDia =
+                reservaRepository.findByArtistaIdAndFechaEvento(
+                        artista.getId(),
+                        request.getFechaEvento()
+                );
+
+        for (Reserva existente : reservasDelDia) {
+
+            // Por compatibilidad con reservas antiguas sin hora
+            if (existente.getHoraEvento() == null ||
+                    existente.getDuracionMinutos() == null) {
+                continue;
+            }
+
+            LocalTime inicioExistente =
+                    existente.getHoraEvento();
+
+            LocalTime finExistente =
+                    inicioExistente.plusMinutes(
+                            existente.getDuracionMinutos()
+                    );
+
+            boolean seCruzan =
+                    horaInicio.isBefore(finExistente)
+                            && horaFin.isAfter(inicioExistente);
+
+            if (seCruzan) {
+                throw new IllegalStateException(
+                        "El artista ya tiene una reserva que se cruza con ese horario"
+                );
+            }
+        }
+
+        /*
+         * PRECIOS
+         */
         BigDecimal subtotal = paquete.getPrecio();
 
         BigDecimal comisionServicio =
@@ -80,6 +152,9 @@ public class ReservaService {
                         .add(comisionServicio)
                         .subtract(descuento);
 
+        /*
+         * CREACIÓN DE LA RESERVA
+         */
         Reserva reserva = new Reserva();
 
         reserva.setFolio(generarFolio());
@@ -102,7 +177,9 @@ public class ReservaService {
         reserva.setCantidadInvitados(request.getCantidadInvitados());
         reserva.setMensajeCliente(request.getMensajeCliente());
 
-        // Snapshot
+        /*
+         * Snapshot del paquete al momento de reservar.
+         */
         reserva.setNombrePaquete(paquete.getNombre());
         reserva.setDuracionMinutos(paquete.getDuracionMinutos());
 
@@ -115,19 +192,23 @@ public class ReservaService {
 
         reserva.setEstado(EstadoReserva.PENDIENTE_PAGO);
 
-        Reserva guardada = reservaRepository.save(reserva);
+        Reserva guardada =
+                reservaRepository.save(reserva);
 
-        // Bloqueamos la fecha
-        disponibilidad.setEstado(
-                EstadoDisponibilidad.RESERVADO
-        );
-
-        disponibilidadRepository.save(disponibilidad);
+        /*
+         * IMPORTANTE:
+         *
+         * Ya NO marcamos la disponibilidad completa como RESERVADO.
+         *
+         * El artista puede tener varias reservas dentro del mismo día,
+         * siempre que los horarios no se crucen.
+         */
 
         return toResponse(guardada);
     }
 
     private String generarFolio() {
+
         return UUID.randomUUID()
                 .toString()
                 .substring(0, 8)
@@ -144,6 +225,7 @@ public class ReservaService {
                 reserva.getNombrePaquete(),
 
                 reserva.getFechaEvento(),
+                reserva.getHoraEvento(),
 
                 reserva.getNombreCliente(),
                 reserva.getCorreoCliente(),
@@ -156,5 +238,15 @@ public class ReservaService {
                 reserva.getMoneda(),
                 reserva.getEstado().name()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservaResponse> buscarPorCorreo(String correo) {
+
+        return reservaRepository
+                .findByCorreoClienteIgnoreCaseOrderByFechaEventoDesc(correo)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 }

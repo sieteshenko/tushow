@@ -266,7 +266,14 @@
         <div class="cal-title">Marca tus días disponibles</div>
         <div class="cal-nav" id="p-cal-nav"></div>
         <div class="cal-grid" id="p-cal"></div>
-        <button class="btn-primary" id="p-submit">Enviar solicitud</button>
+
+        <div id="p-availability-hours"
+             style="margin-top:20px;">
+        </div>
+
+        <button class="btn-primary" id="p-submit">
+          Enviar solicitud
+        </button>
         <div id="p-msg" class="section-sub" style="margin-top:10px;"></div>
       </div>
     </section>
@@ -343,6 +350,7 @@ let selectedPkgId = null;
 let detailCalDate = new Date();
 let publishCalDate = new Date();
 let publishDates = new Set();
+let publishAvailability = new Map();
 publishPackages = [{
   label: "Show mínimo",
   description: "",
@@ -365,6 +373,27 @@ function starsHTML(rating, size){
   const full = Math.round(rating);
   for(let i=0;i<5;i++) out += `<span style="color:${i<full?'var(--gold)':'var(--line)'}; font-size:${size}px;">★</span>`;
   return out;
+}
+function subtractMinutes(time, minutes){
+
+  if(!time){
+    return '';
+  }
+
+  const [h, m] = time.split(':').map(Number);
+
+  const total =
+          h * 60 +
+          m -
+          minutes;
+
+  const hh =
+          Math.floor(total / 60);
+
+  const mm =
+          total % 60;
+
+  return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
 }
 function avgRating(a){
   if(!a.reviews || a.reviews.length===0) return null;
@@ -401,7 +430,14 @@ async function loadArtists(){
         price: Number(p.precio),
         currency: p.moneda
       })),
-      dates: a.fechasDisponibles || [],
+      availability: (a.disponibilidades || []).map(d => ({
+        date: d.fecha,
+        from: d.horaDesde ? d.horaDesde.slice(0, 5) : null,
+        to: d.horaHasta ? d.horaHasta.slice(0, 5) : null
+      })),
+
+      dates: (a.disponibilidades || []).map(d => d.fecha),
+
       gallery: [],
       reviews: []
     }));
@@ -671,9 +707,28 @@ function refreshBookingFormIfOpen(){ if(selectedDate) renderBookingForm(); }
 
 function currentPackage(){ return (currentArtist.packages||[]).find(p=>p.id===selectedPkgId) || (currentArtist.packages||[])[0]; }
 
+function currentAvailability(){
+
+  if(!currentArtist || !selectedDate){
+    return null;
+  }
+
+  return (currentArtist.availability || [])
+                  .find(d => d.date === selectedDate)
+          || null;
+}
+
 function renderBookingForm(){
   const a = currentArtist;
   const pkg = currentPackage();
+  const availability = currentAvailability();
+  const maxStartTime =
+          availability && pkg
+                  ? subtractMinutes(
+                          availability.to,
+                          pkg.minutes
+                  )
+                  : '';
   const wrap = document.getElementById('booking-form-wrap');
   wrap.innerHTML = `
     <div class="form-box">
@@ -693,7 +748,21 @@ function renderBookingForm(){
       <input id="b-phone" placeholder="+56 9 1234 5678">
 
       <label>Hora del evento</label>
-      <input id="b-time" type="time">
+
+        <input
+            id="b-time"
+            type="time"
+            min="${availability?.from || ''}"
+            max="${maxStartTime}"
+        >
+
+        <div class="section-sub"
+             style="margin-top:6px;">
+          Horario disponible:
+          <b style="color:var(--gold)">
+            ${availability?.from || '—'} a ${availability?.to || '—'}
+          </b>
+        </div>
 
       <label>Dirección del evento</label>
       <input id="b-address" placeholder="Ej: Av. Providencia 1234">
@@ -734,13 +803,36 @@ async function crearReserva(){
   const status = document.getElementById('booking-status');
   const btn = document.getElementById('b-continue');
 
-  if(!nombre || !correo){
-    status.textContent = 'Ingresa al menos tu nombre y correo.';
+  if(!nombre || !correo || !hora){
+    status.textContent = 'Ingresa tu nombre, correo y hora del evento.';
     return;
   }
 
   if(!a || !pkg || !selectedDate){
     status.textContent = 'No se pudo determinar el artista, paquete o fecha.';
+    return;
+  }
+
+  const availability = currentAvailability();
+
+  if(!availability){
+    status.textContent =
+            'No encontramos disponibilidad para esa fecha.';
+    return;
+  }
+
+  const maxStartTime =
+          subtractMinutes(
+                  availability.to,
+                  pkg.minutes
+          );
+
+  if(hora < availability.from || hora > maxStartTime){
+
+    status.textContent =
+            `El horario debe comenzar entre ` +
+            `${availability.from} y ${maxStartTime}.`;
+
     return;
   }
 
@@ -809,7 +901,8 @@ function renderConfirmation(reserva){
       <div class="ok">🎟️</div>
       <h2 style="font-family:var(--font-display); font-size:26px; margin:6px 0;">Reserva creada</h2>
       <div class="section-sub">
-        ${reserva.artista} · ${reserva.paquete} · ${fmtDate(reserva.fechaEvento)}
+       ${reserva.artista} · ${reserva.paquete} ·
+       ${fmtDate(reserva.fechaEvento)} · ${reserva.horaEvento} hrs
       </div>
       <div class="folio">FOLIO ${reserva.folio}</div>
       <div class="summary-row" style="margin-top:16px;">
@@ -944,17 +1037,187 @@ function renderPublishPackages(){
   );
 }
 function renderPublishCalendar(){
-  renderCalNav('p-cal-nav', publishCalDate,
-    ()=>{ publishCalDate.setMonth(publishCalDate.getMonth()-1); renderPublishCalendar(); },
-    ()=>{ publishCalDate.setMonth(publishCalDate.getMonth()+1); renderPublishCalendar(); });
+
+  renderCalNav(
+          'p-cal-nav',
+          publishCalDate,
+          ()=>{
+            publishCalDate.setMonth(
+                    publishCalDate.getMonth() - 1
+            );
+            renderPublishCalendar();
+          },
+          ()=>{
+            publishCalDate.setMonth(
+                    publishCalDate.getMonth() + 1
+            );
+            renderPublishCalendar();
+          }
+  );
+
   const cal = document.getElementById('p-cal');
-  cal.innerHTML = buildMonthGrid(publishCalDate, publishDates, "toggle", null);
-  cal.querySelectorAll('.cal-day:not(.empty2)').forEach(el=>{
-    const iso = el.dataset.date;
-    if(publishDates.has(iso)) el.classList.add('avail','selected');
-    el.style.cursor = "pointer";
-    el.addEventListener('click', ()=>{ if(publishDates.has(iso)) publishDates.delete(iso); else publishDates.add(iso); renderPublishCalendar(); });
-  });
+
+  cal.innerHTML =
+          buildMonthGrid(
+                  publishCalDate,
+                  publishDates,
+                  "toggle",
+                  null
+          );
+
+  cal.querySelectorAll('.cal-day:not(.empty2)')
+          .forEach(el => {
+
+            const iso = el.dataset.date;
+
+            if(publishDates.has(iso)){
+              el.classList.add('avail', 'selected');
+            }
+
+            el.style.cursor = "pointer";
+
+            el.addEventListener('click', ()=>{
+
+              if(publishDates.has(iso)){
+
+                publishDates.delete(iso);
+                publishAvailability.delete(iso);
+
+              } else {
+
+                publishDates.add(iso);
+
+                /*
+                 * Horario por defecto.
+                 * Después el artista lo puede modificar.
+                 */
+                publishAvailability.set(
+                        iso,
+                        {
+                          horaDesde: "18:00",
+                          horaHasta: "23:00"
+                        }
+                );
+              }
+
+              renderPublishCalendar();
+              renderPublishAvailability();
+            });
+          });
+
+  renderPublishAvailability();
+}
+
+function renderPublishAvailability(){
+
+  const wrap =
+          document.getElementById(
+                  'p-availability-hours'
+          );
+
+  if(!wrap){
+    return;
+  }
+
+  const fechas =
+          [...publishDates].sort();
+
+  if(fechas.length === 0){
+
+    wrap.innerHTML = '';
+
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div style="
+        font-weight:700;
+        margin-bottom:12px;
+    ">
+        Horarios disponibles
+    </div>
+
+    ${fechas.map(fecha => {
+
+    const horario =
+            publishAvailability.get(fecha) || {
+              horaDesde: "18:00",
+              horaHasta: "23:00"
+            };
+
+    return `
+        <div style="
+            display:flex;
+            gap:12px;
+            align-items:end;
+            flex-wrap:wrap;
+            margin-bottom:12px;
+            padding:12px;
+            border:1px solid rgba(255,255,255,.12);
+            border-radius:10px;
+        ">
+
+          <div style="
+              min-width:120px;
+              font-weight:600;
+          ">
+              ${fmtDate(fecha)}
+          </div>
+
+          <div>
+            <label>Desde</label>
+            <input
+                type="time"
+                class="availability-from"
+                data-date="${fecha}"
+                value="${horario.horaDesde}">
+          </div>
+
+          <div>
+            <label>Hasta</label>
+            <input
+                type="time"
+                class="availability-to"
+                data-date="${fecha}"
+                value="${horario.horaHasta}">
+          </div>
+
+        </div>
+      `;
+  }).join('')}
+  `;
+
+  wrap.querySelectorAll('.availability-from')
+          .forEach(input => {
+
+            input.addEventListener('change', ()=>{
+
+              const fecha =
+                      input.dataset.date;
+
+              const horario =
+                      publishAvailability.get(fecha);
+
+              horario.horaDesde =
+                      input.value;
+            });
+          });
+
+  wrap.querySelectorAll('.availability-to')
+          .forEach(input => {
+
+            input.addEventListener('change', ()=>{
+
+              const fecha =
+                      input.dataset.date;
+
+              const horario =
+                      publishAvailability.get(fecha);
+
+              horario.horaHasta =
+                      input.value;
+            });
+          });
 }
 
 async function handlePublish(){
@@ -1012,7 +1275,20 @@ async function handlePublish(){
       precio: Number(p.price)
     })),
 
-    fechasDisponibles: [...publishDates].sort()
+    disponibilidades:
+            [...publishDates]
+                    .sort()
+                    .map(fecha => {
+
+                      const horario =
+                              publishAvailability.get(fecha);
+
+                      return {
+                        fecha: fecha,
+                        horaDesde: horario.horaDesde,
+                        horaHasta: horario.horaHasta
+                      };
+                    })
   };
 
   try {
@@ -1043,7 +1319,10 @@ async function handlePublish(){
     renderPublishPackages();
 
     publishDates = new Set();
+    publishAvailability = new Map();
+
     renderPublishCalendar();
+    renderPublishAvailability();
 
   } catch(e) {
 
@@ -1061,19 +1340,116 @@ async function handlePublish(){
 
 /* ---------- RESERVAS ---------- */
 async function handleSearchBookings(){
-  const email = document.getElementById('r-email').value.trim().toLowerCase();
-  const results = document.getElementById('r-results');
-  if(!email){ results.innerHTML = `<div class="empty">Ingresa un correo para buscar.</div>`; return; }
-  const bookings = await loadBookings();
-  const mine = bookings.filter(b => b.clientEmail.toLowerCase() === email);
-  if(mine.length === 0){ results.innerHTML = `<div class="empty">No encontramos reservas con ese correo.</div>`; return; }
-  results.innerHTML = mine.map(b => `
-    <div class="booking-row">
-      <div><div class="bwho">${b.artistName} — ${b.packageLabel||''}</div><div class="bwhen">${fmtDate(b.date)} · Folio ${b.folio} · ${fmtCLP(b.total)}</div></div>
-      <div class="status-pill">${b.status}</div>
-    </div>`).join('');
-}
 
+  const email =
+          document.getElementById('r-email')
+                  .value
+                  .trim();
+
+  const results =
+          document.getElementById('r-results');
+
+  if(!email){
+    results.innerHTML =
+            `<div class="empty">
+            Ingresa un correo para buscar.
+         </div>`;
+    return;
+  }
+
+  results.innerHTML =
+          `<div class="empty">
+          Buscando reservas...
+       </div>`;
+
+  try {
+
+    const response = await fetch(
+            '/api/reservas?correo=' +
+            encodeURIComponent(email)
+    );
+
+    if(!response.ok){
+
+      let detalle = '';
+
+      try {
+        const body = await response.json();
+        detalle =
+                body.message ||
+                body.error ||
+                '';
+      } catch(e){}
+
+      throw new Error(
+              detalle ||
+              `Error HTTP ${response.status}`
+      );
+    }
+
+    const reservas = await response.json();
+
+    if(reservas.length === 0){
+
+      results.innerHTML =
+              `<div class="empty">
+              No encontramos reservas con ese correo.
+           </div>`;
+
+      return;
+    }
+
+    results.innerHTML =
+            reservas.map(r => {
+
+              const hora =
+                      r.horaEvento
+                              ? r.horaEvento.slice(0,5)
+                              : '';
+
+              return `
+            <div class="booking-row">
+
+              <div>
+
+                <div class="bwho">
+                  ${r.artista}
+                  —
+                  ${r.paquete || ''}
+                </div>
+
+                <div class="bwhen">
+                  ${fmtDate(r.fechaEvento)}
+                  ${hora ? ' · ' + hora + ' hrs' : ''}
+                  · Folio ${r.folio}
+                  · ${fmtCLP(r.total)}
+                </div>
+
+              </div>
+
+              <div class="status-pill">
+                ${r.estado}
+              </div>
+
+            </div>
+          `;
+
+            }).join('');
+
+  } catch(e){
+
+    console.error(
+            'Error buscando reservas:',
+            e
+    );
+
+    results.innerHTML =
+            `<div class="empty">
+            No pudimos consultar las reservas:
+            ${e.message}
+         </div>`;
+  }
+}
 /* ---------- REFERIDOS ---------- */
 async function initReferrals(){
   const code = await getMyCode();

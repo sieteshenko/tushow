@@ -5,6 +5,7 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Getter
 @AllArgsConstructor
@@ -17,6 +18,7 @@ public class ReservaResponse {
     private String paquete;
 
     private LocalDate fechaEvento;
+    private LocalTime horaEvento;
 
     private String nombreCliente;
     private String correoCliente;

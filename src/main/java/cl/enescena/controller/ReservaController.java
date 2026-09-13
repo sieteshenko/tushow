@@ -6,6 +6,8 @@ import cl.enescena.service.ReservaService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/reservas")
 public class ReservaController {
@@ -22,5 +24,12 @@ public class ReservaController {
             @RequestBody CrearReservaRequest request) {
 
         return reservaService.crear(request);
+    }
+
+    @GetMapping
+    public List<ReservaResponse> buscarPorCorreo(
+            @RequestParam String correo
+    ) {
+        return reservaService.buscarPorCorreo(correo);
     }
 }

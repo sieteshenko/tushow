@@ -23,5 +23,5 @@ public class ArtistaResponse {
     private List<String> categorias;
     private List<PaqueteShowResponse> paquetes;
 
-    private List<LocalDate> fechasDisponibles;
+    private List<DisponibilidadResponse> disponibilidades;
 }

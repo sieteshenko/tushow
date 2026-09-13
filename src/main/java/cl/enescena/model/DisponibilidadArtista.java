@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "disponibilidad_artista")
@@ -27,4 +28,10 @@ public class DisponibilidadArtista {
     private EstadoDisponibilidad estado;
 
     private String observaciones;
+
+    @Column(name = "hora_desde")
+    private LocalTime horaDesde;
+
+    @Column(name = "hora_hasta")
+    private LocalTime horaHasta;
 }
