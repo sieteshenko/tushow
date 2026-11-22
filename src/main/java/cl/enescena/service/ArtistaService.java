@@ -40,7 +40,8 @@ public class ArtistaService {
     @Transactional(readOnly = true)
     public ArtistaResponse obtenerPorSlug(String slug) {
 
-        Artista artista = artistaRepository.findBySlug(slug)
+        Artista artista = artistaRepository
+                .findBySlugAndEstado(slug, EstadoArtista.PUBLICADO)
                 .orElseThrow(() ->
                         new RuntimeException("Artista no encontrado: " + slug)
                 );
@@ -88,7 +89,8 @@ public class ArtistaService {
         artista.setCorreoContacto(request.correoContacto());
         artista.setTelefonoContacto(request.telefonoContacto());
 
-        artista.setDestacado(Boolean.TRUE.equals(request.destacado()));
+        // Destacar lo decide la administración, nunca quien envía la solicitud.
+        artista.setDestacado(false);
         artista.setShowsRealizados(0);
 
         // No aparece públicamente todavía.
