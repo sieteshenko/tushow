@@ -5,12 +5,17 @@ import cl.enescena.model.*;
 import cl.enescena.repository.ArtistaRepository;
 import cl.enescena.repository.CategoriaRepository;
 import cl.enescena.repository.DisponibilidadArtistaRepository;
+import cl.enescena.repository.MediaArtistaRepository;
 import cl.enescena.repository.PaqueteShowRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.text.Normalizer;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -20,12 +25,18 @@ public class ArtistaService {
     private final CategoriaRepository categoriaRepository;
     private final PaqueteShowRepository paqueteShowRepository;
     private final DisponibilidadArtistaRepository disponibilidadRepository;
+    private final MediaArtistaRepository mediaRepository;
+    private final MediaStorage mediaStorage;
 
-    public ArtistaService(ArtistaRepository artistaRepository, CategoriaRepository categoriaRepository, PaqueteShowRepository paqueteShowRepository, DisponibilidadArtistaRepository disponibilidadRepository) {
+    public static final int MAX_GALERIA = 6;
+
+    public ArtistaService(ArtistaRepository artistaRepository, CategoriaRepository categoriaRepository, PaqueteShowRepository paqueteShowRepository, DisponibilidadArtistaRepository disponibilidadRepository, MediaArtistaRepository mediaRepository, MediaStorage mediaStorage) {
         this.artistaRepository = artistaRepository;
         this.categoriaRepository = categoriaRepository;
         this.paqueteShowRepository = paqueteShowRepository;
         this.disponibilidadRepository = disponibilidadRepository;
+        this.mediaRepository = mediaRepository;
+        this.mediaStorage = mediaStorage;
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +62,23 @@ public class ArtistaService {
 
     @Transactional
     public CrearArtistaResponse crear(CrearArtistaRequest request) {
+        return crear(request, null, List.of());
+    }
+
+    @Transactional
+    public CrearArtistaResponse crear(
+            CrearArtistaRequest request,
+            MultipartFile foto,
+            List<MultipartFile> galeria
+    ) {
+
+        List<MultipartFile> medios = galeria == null ? List.of() : galeria;
+
+        if (medios.size() > MAX_GALERIA) {
+            throw new IllegalArgumentException(
+                    "Puedes subir hasta " + MAX_GALERIA + " fotos o videos"
+            );
+        }
 
         if (request.paquetes() == null || request.paquetes().isEmpty()) {
             throw new IllegalArgumentException(
@@ -159,12 +187,74 @@ public class ArtistaService {
             disponibilidadRepository.save(disponibilidad);
         }
 
+        // Los archivos se escriben al final, cuando todo lo demás ya es válido.
+        guardarMedios(artista, foto, medios);
+
         return new CrearArtistaResponse(
                 artista.getId(),
                 artista.getNombreArtistico(),
                 artista.getSlug(),
                 artista.getEstado().name()
         );
+    }
+
+    private void guardarMedios(
+            Artista artista,
+            MultipartFile foto,
+            List<MultipartFile> galeria
+    ) {
+        if (foto == null && galeria.isEmpty()) {
+            return;
+        }
+
+        // Si la transacción no se confirma, los archivos ya escritos no deben quedar en disco.
+        List<String> escritos = new ArrayList<>();
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status != STATUS_COMMITTED) {
+                            escritos.forEach(mediaStorage::borrar);
+                        }
+                    }
+                }
+        );
+
+        if (foto != null) {
+            MediaStorage.Archivo archivo =
+                    mediaStorage.guardar(foto, true, "La foto de perfil");
+            escritos.add(archivo.nombre());
+            artista.setUrlImagenPerfil("/media/" + archivo.nombre());
+        }
+
+        int orden = 1;
+        for (MultipartFile item : galeria) {
+            MediaStorage.Archivo archivo =
+                    mediaStorage.guardar(item, false, "El archivo " + orden + " de la galería");
+            escritos.add(archivo.nombre());
+
+            MediaArtista media = new MediaArtista();
+            media.setArtista(artista);
+            media.setTipo(archivo.tipo());
+            media.setArchivo(archivo.nombre());
+            media.setContentType(archivo.contentType());
+            media.setTamanoBytes(archivo.tamano());
+            media.setOrden(orden++);
+            mediaRepository.save(media);
+        }
+    }
+
+    private List<MediaResponse> galeria(Artista artista) {
+        if (artista.getMedios() == null) {
+            return List.of();
+        }
+        return artista.getMedios()
+                .stream()
+                .map(media -> new MediaResponse(
+                        "/media/" + media.getArchivo(),
+                        media.getTipo().name()
+                ))
+                .toList();
     }
 
     private String generarSlugUnico(String texto) {
@@ -245,7 +335,8 @@ public class ArtistaService {
                 artista.getDestacado(),
                 categorias,
                 paquetes,
-                disponibilidades
+                disponibilidades,
+                galeria(artista)
         );
     }
 
@@ -338,12 +429,14 @@ public class ArtistaService {
                 artista.getRegion(),
                 artista.getComuna(),
                 artista.getIcono(),
+                artista.getUrlImagenPerfil(),
                 artista.getNombreContacto(),
                 artista.getCorreoContacto(),
                 artista.getTelefonoContacto(),
                 categorias,
                 paquetes,
-                fechasDisponibles
+                fechasDisponibles,
+                galeria(artista)
         );
     }
 

@@ -25,6 +25,9 @@ function toArtist(dto) {
       minutes: p.duracionMinutos,
       price: Number(p.precio),
     })),
+    gallery: (dto.galeria || [])
+      .map((m) => ({ url: safeImageUrl(m.url), kind: m.tipo === 'VIDEO' ? 'video' : 'image' }))
+      .filter((m) => m.url),
     availability: (dto.disponibilidades || []).map((d) => ({
       date: d.fecha,
       from: d.horaDesde?.slice(0, 5) || null,

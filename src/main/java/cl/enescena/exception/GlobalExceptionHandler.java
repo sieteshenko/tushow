@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -43,6 +44,23 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .body(body);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleMaxUploadSize(
+            MaxUploadSizeExceededException ex
+    ) {
+
+        Map<String, Object> body = new LinkedHashMap<>();
+
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.PAYLOAD_TOO_LARGE.value());
+        body.put("error", "Payload Too Large");
+        body.put("message", "Los archivos superan el tamaño permitido: 50 MB por video y 120 MB en total");
+
+        return ResponseEntity
+                .status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(body);
     }
 

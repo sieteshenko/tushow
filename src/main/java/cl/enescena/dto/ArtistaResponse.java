@@ -24,4 +24,6 @@ public class ArtistaResponse {
     private List<PaqueteShowResponse> paquetes;
 
     private List<DisponibilidadResponse> disponibilidades;
+
+    private List<MediaResponse> galeria;
 }

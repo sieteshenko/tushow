@@ -11,11 +11,13 @@ public record AdminArtistaResponse(
         String region,
         String comuna,
         String icono,
+        String urlImagenPerfil,
         String nombreContacto,
         String correoContacto,
         String telefonoContacto,
         List<String> categorias,
         List<PaqueteShowResponse> paquetes,
-        List<LocalDate> fechasDisponibles
+        List<LocalDate> fechasDisponibles,
+        List<MediaResponse> galeria
 ) {
 }

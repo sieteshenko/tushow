@@ -21,6 +21,47 @@ function startWindow(slot, pkg) {
   return first <= last ? { first, last } : null;
 }
 
+// Fotos y videos del artista. Las fotos se amplían en un diálogo.
+function gallerySection(artist) {
+  if (!artist.gallery.length) return null;
+
+  const viewer = h('dialog', { class: 'media-viewer', 'aria-label': `Foto de ${artist.name}` });
+  const close = () => viewer.close();
+  viewer.addEventListener('click', (event) => {
+    if (event.target === viewer) close();
+  });
+
+  const items = artist.gallery.map((item, index) => {
+    if (item.kind === 'video') {
+      return h('video', {
+        class: 'media-item',
+        src: item.url,
+        controls: true,
+        playsinline: true,
+        preload: 'metadata',
+        'aria-label': `Video ${index + 1} de ${artist.name}`,
+      });
+    }
+    const label = `Foto ${index + 1} de ${artist.name}`;
+    return h('button', {
+      type: 'button',
+      class: 'media-item',
+      'aria-label': `Ampliar ${label.toLowerCase()}`,
+      onclick: () => {
+        viewer.replaceChildren(
+          h('img', { src: item.url, alt: label }),
+          h('button', { type: 'button', class: 'secondary', onclick: close }, 'Cerrar'));
+        viewer.showModal();
+      },
+    }, h('img', { src: item.url, alt: '', loading: 'lazy' }));
+  });
+
+  return h('section', { class: 'gallery-section' },
+    h('h3', { class: 'step' }, 'Fotos y videos'),
+    h('div', { class: 'gallery' }, items),
+    viewer);
+}
+
 function confirmation(booking) {
   const line = (label, value, className = '') =>
     h('div', { class: `summary ${className}` }, h('span', {}, label), h('span', {}, money(value)));
@@ -185,7 +226,8 @@ export function renderArtist(slug) {
         h('div', { class: 'hero' }, photo(artist), favorite),
         h('h2', { class: 'view-title', tabindex: '-1' }, artist.name),
         h('p', { class: 'hint' }, [artist.categories.join(', '), artist.city, artist.region].filter(Boolean).join(' · ')),
-        h('p', { class: 'bio' }, artist.bio)),
+        h('p', { class: 'bio' }, artist.bio),
+        gallerySection(artist)),
       h('div', { class: 'detail-booking' },
         h('h3', { class: 'step' }, 'Elige tu opción'),
         packages.length ? h('div', { class: 'packages' }, packages) : h('p', { class: 'hint' }, 'Este artista no tiene opciones publicadas.'),
