@@ -20,3 +20,5 @@ Thumbs.db
 # Temporales
 *.tmp
 *.swp
+# Fotos y videos subidos en desarrollo
+/uploads/

@@ -155,3 +155,77 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 .booking-row h3 { font: 700 14px/1.4 var(--inter); }
 .booking-row p { color: var(--muted); font-size: 12px; }
 .status-pill { padding: 4px 12px; border-radius: 99px; background: var(--accent); font-size: 11px; font-weight: 700; }
+
+/* Fotos y videos: subida en Publicar */
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.file-button { position: relative; cursor: pointer; }
+.file-button:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.photo-picker { display: flex; align-items: flex-start; gap: 14px; }
+.photo-preview {
+  display: grid;
+  flex: none;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--placeholder);
+}
+.photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+.photo-preview .photo-icon { font-size: 44px; }
+.photo-actions { display: grid; justify-items: start; gap: 6px; min-width: 0; }
+.photo-actions .secondary { margin-top: 0; }
+
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.media-grid:not(:empty) { margin-bottom: 10px; }
+.media-grid .media-item { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 12px; background: var(--surface); }
+.media-grid :is(img, video) { width: 100%; height: 100%; object-fit: cover; }
+.media-kind {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgb(0 0 0 / 70%);
+  font-size: 11px;
+}
+.media-grid .remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 70%);
+}
+
+/* Fotos y videos: ficha del artista */
+.gallery-section { margin-top: 6px; }
+.gallery {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 6px;
+}
+.gallery .media-item {
+  flex: none;
+  width: min(78%, 280px);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface);
+  scroll-snap-align: start;
+}
+.gallery video.media-item { object-fit: contain; background: #000; }
+.gallery button img { width: 100%; height: 100%; object-fit: cover; }
+.media-viewer { width: min(960px, calc(100% - 28px)); padding: 10px; text-align: center; }
+.media-viewer img { max-width: 100%; max-height: 78vh; margin: 0 auto; object-fit: contain; }
+.media-viewer .secondary { margin-top: 10px; }

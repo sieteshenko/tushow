@@ -108,6 +108,29 @@
             font-size: 42px;
         }
 
+        .artist-photo {
+            display: block;
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .gallery .media {
+            display: block;
+            width: 160px;
+            height: 120px;
+            border-radius: 10px;
+            background: #111;
+            object-fit: cover;
+        }
+
         .artist-title h3 {
             margin: 0;
             font-size: 22px;
@@ -404,6 +427,23 @@
                 `).join('')
                 : '<span>Sin fechas disponibles.</span>';
 
+        // Solo rutas generadas por el servidor; cualquier otro valor se ignora.
+        const fotoPerfil = esMediaValida(artista.urlImagenPerfil)
+            ? artista.urlImagenPerfil
+            : null;
+
+        const galeria = (artista.galeria || [])
+            .filter(media => esMediaValida(media.url));
+
+        const galeriaHtml =
+            galeria.length
+                ? galeria.map(media =>
+                    media.tipo === 'VIDEO'
+                        ? `<video class="media" src="${media.url}" controls preload="metadata"></video>`
+                        : `<a href="${media.url}" target="_blank" rel="noopener"><img class="media" src="${media.url}" alt="Foto de la galería"></a>`
+                ).join('')
+                : '<span>Sin fotos ni videos.</span>';
+
 
         card.innerHTML = `
 
@@ -411,9 +451,9 @@
 
                 <div class="artist-title">
 
-                    <div class="artist-icon">
-                        ${escapeHtml(artista.icono || '🎤')}
-                    </div>
+                    ${fotoPerfil
+                        ? `<a href="${fotoPerfil}" target="_blank" rel="noopener"><img class="artist-photo" src="${fotoPerfil}" alt="Foto de perfil"></a>`
+                        : `<div class="artist-icon">${escapeHtml(artista.icono || '🎤')}</div>`}
 
                     <div>
                         <h3>${escapeHtml(artista.nombreArtistico)}</h3>
@@ -482,6 +522,17 @@
 
                 <div class="packages">
                     ${paquetesHtml}
+                </div>
+
+            </div>
+
+
+            <div class="section">
+
+                <h4>Fotos y videos</h4>
+
+                <div class="gallery">
+                    ${galeriaHtml}
                 </div>
 
             </div>
@@ -691,6 +742,12 @@
         ).format(
             new Date(year, month - 1, day)
         );
+    }
+
+
+    function esMediaValida(url) {
+        return typeof url === 'string'
+            && /^\/media\/[0-9a-f]{32}\.(jpg|png|webp|mp4|mov|webm)$/.test(url);
     }
 
 

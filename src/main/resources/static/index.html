@@ -90,8 +90,31 @@
               <option value="🤹">🤹 Circo</option>
               <option value="😂">😂 Comedia</option>
             </select></label>
+
+          <div class="field">
+            <span id="photo-label">Foto de perfil</span>
+            <div class="photo-picker">
+              <div class="photo-preview" id="publish-photo-preview" aria-hidden="true"></div>
+              <div class="photo-actions">
+                <label class="secondary file-button">Elegir foto
+                  <input class="file-input" name="foto" type="file" accept="image/jpeg,image/png,image/webp" aria-labelledby="photo-label"></label>
+                <button class="link" id="publish-photo-remove" type="button" hidden>Quitar foto</button>
+                <p class="hint">Opcional. Se verá en el catálogo y en tu perfil. Sin foto, usamos el ícono.</p>
+                <p class="hint" id="photo-status" role="status"></p>
+              </div>
+            </div>
+          </div>
+
           <label class="field"><span>Sobre tu show</span>
             <textarea name="biografia" required placeholder="Cuenta en qué consiste, requerimientos técnicos, etc."></textarea></label>
+
+          <h3 class="step" id="gallery-label">Fotos y videos de tus shows</h3>
+          <p class="hint">Opcional. Hasta 6 archivos: fotos JPG, PNG o WebP, o videos MP4, MOV o WebM de hasta 50 MB.</p>
+          <div class="media-grid" id="publish-gallery"></div>
+          <label class="secondary file-button" id="gallery-add">+ Agregar fotos o videos
+            <input class="file-input" name="galeria" type="file" multiple aria-labelledby="gallery-label"
+              accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm"></label>
+          <p class="hint" id="gallery-status" role="status"></p>
 
           <h3 class="step">Opciones de duración y precio</h3>
           <div id="publish-packages"></div>

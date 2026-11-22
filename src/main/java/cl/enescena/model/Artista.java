@@ -81,4 +81,8 @@ public class Artista {
 
     @OneToMany(mappedBy = "artista", fetch = FetchType.LAZY)
     private List<DisponibilidadArtista> disponibilidades;
+
+    @OneToMany(mappedBy = "artista", fetch = FetchType.LAZY)
+    @OrderBy("orden ASC")
+    private List<MediaArtista> medios;
 }
