@@ -1,0 +1,157 @@
+/* Vistas que no están en Figma: mismos colores, fuentes y formas. */
+.page { padding: 12px var(--gutter) 0; font-size: 14px; line-height: 1.5; }
+.view-title { margin: 12px 0 4px; font: 800 24px/1.2 var(--display); letter-spacing: -.5px; overflow-wrap: anywhere; }
+.view-title:focus, .confirmation:focus { outline: 0; }
+.view-title.inset { margin: 24px var(--gutter) 16px; }
+.hint { color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.step { margin: 24px 0 10px; font: 700 14px/1.3 var(--inter); }
+
+.notice {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  font-size: 12px;
+}
+.panel { margin-top: 18px; padding: 16px; border-radius: 15px; background: var(--surface); }
+
+/* Formularios: 16px evita el zoom automático de iOS al enfocar. */
+.field { display: block; margin-top: 14px; }
+.field > span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 12px; }
+.field :is(input, select, textarea), .package-row :is(input, textarea) {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: #fff;
+  color-scheme: dark;
+  font: 16px/1.3 var(--inter);
+}
+textarea { min-height: 84px; resize: vertical; }
+:is(.field, .package-row) :is(input, select, textarea):focus { border-color: var(--accent); outline: 0; }
+
+.primary, .secondary {
+  display: inline-block;
+  min-height: 40px;
+  padding: 10px 18px;
+  border-radius: 99px;
+  color: #fff;
+  font: 700 14px/20px var(--inter);
+  text-align: center;
+  text-decoration: none;
+}
+.primary { width: 100%; margin-top: 20px; background: var(--accent); }
+.secondary { margin-top: 10px; background: var(--chip); }
+.primary:disabled { opacity: .5; cursor: default; }
+.link { color: var(--accent); font: 700 12px/1.4 var(--inter); text-decoration: none; }
+.back { display: inline-block; padding: 8px 0; }
+.form-status { min-height: 21px; margin-top: 10px; overflow-wrap: anywhere; }
+.state { padding: 24px var(--gutter); color: var(--muted); font-size: 14px; line-height: 1.5; }
+.page .state { padding-inline: 0; }
+
+/* Ficha del artista */
+.detail { display: grid; }
+.detail > * { min-width: 0; }
+.hero { position: relative; }
+.hero .photo { height: 210px; }
+.hero .photo-icon { font-size: 80px; }
+.favorite {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(30 30 30 / 80%);
+}
+.favorite img { width: 26px; height: 26px; }
+.favorite[aria-pressed='true'] { background: var(--accent); }
+.bio { margin-top: 14px; white-space: pre-line; overflow-wrap: anywhere; }
+
+.packages { display: grid; gap: 8px; }
+.package {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.package:has(input:checked) { border-color: var(--accent); }
+.package input { flex: none; margin: 0; accent-color: var(--accent); }
+.package-text { display: grid; flex: 1; min-width: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.package-text strong { color: #fff; font-size: 14px; }
+.package-price { font-weight: 700; }
+
+.booking-summary { font-weight: 700; overflow-wrap: anywhere; }
+.booking .hint { margin-top: 6px; }
+.confirmation h3 { font: 800 22px/1.3 var(--display); }
+.confirmation p { overflow-wrap: anywhere; }
+.folio { margin: 12px 0; color: var(--accent); font-weight: 800; letter-spacing: 1px; }
+.summary { display: flex; justify-content: space-between; padding: 4px 0; }
+.summary.total { margin: 6px 0 10px; padding-top: 10px; border-top: 1px solid var(--line); font-weight: 800; }
+
+/* Calendario */
+.calendar-box { max-width: 380px; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-nav span::first-letter { text-transform: uppercase; }
+.cal-nav button { width: 40px; height: 40px; border-radius: 50%; background: var(--chip); font-size: 20px; }
+.cal-nav button:disabled { opacity: .3; cursor: default; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.cal-dow { color: var(--muted); font-size: 11px; text-align: center; }
+.cal-day { aspect-ratio: 1; border-radius: 50%; background: var(--chip); font-size: 13px; }
+.cal-day:disabled { background: none; color: #666; cursor: default; }
+.cal-day[aria-pressed='true'] { background: var(--accent); color: #fff; }
+
+dialog {
+  width: min(360px, calc(100% - 28px));
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--bg);
+  color: #fff;
+}
+dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.dialog-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; }
+
+/* Publicar */
+.package-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
+  gap: 8px;
+  min-width: 0;
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.package-row [name='paquete-nombre'] { grid-column: 1 / 3; }
+.package-row .remove { grid-column: 3; grid-row: 1; border-radius: 50%; background: var(--chip); }
+.package-row [name='paquete-minutos'] { grid-column: 1; grid-row: 2; }
+.package-row [name='paquete-precio'] { grid-column: 2 / 4; grid-row: 2; }
+.package-row textarea { grid-column: 1 / -1; }
+.hours-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; margin-top: 10px; padding: 12px; border-radius: 12px; background: var(--surface); }
+.hours-row strong { grid-column: 1 / -1; }
+.hours-row .field { margin-top: 6px; }
+
+/* Mis reservas */
+.booking-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+.booking-row > div { min-width: 0; overflow-wrap: anywhere; }
+.booking-row h3 { font: 700 14px/1.4 var(--inter); }
+.booking-row p { color: var(--muted); font-size: 12px; }
+.status-pill { padding: 4px 12px; border-radius: 99px; background: var(--accent); font-size: 11px; font-weight: 700; }

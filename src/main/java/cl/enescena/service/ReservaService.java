@@ -40,8 +40,17 @@ public class ReservaService {
     @Transactional
     public ReservaResponse crear(CrearReservaRequest request) {
 
+        /*
+         * Las reservas de un mismo artista se procesan de a una.
+         *
+         * Debe ser la primera consulta de la transacción: con REPEATABLE READ,
+         * una lectura previa fijaría una foto de los datos anterior al bloqueo
+         * y no veríamos la reserva que acaba de confirmar otra solicitud.
+         */
         Artista artista = artistaRepository
-                .findById(request.getArtistaId())
+                .findByIdForUpdate(request.getArtistaId())
+                // Mismo error que si no existiera, para no revelar solicitudes en revisión.
+                .filter(encontrado -> encontrado.getEstado() == EstadoArtista.PUBLICADO)
                 .orElseThrow(() ->
                         new RuntimeException("Artista no encontrado")
                 );
@@ -90,11 +99,23 @@ public class ReservaService {
             );
         }
 
-        LocalTime horaFin =
-                horaInicio.plusMinutes(paquete.getDuracionMinutos());
+        Integer duracion = paquete.getDuracionMinutos();
 
-        if (horaInicio.isBefore(disponibilidad.getHoraDesde()) ||
-                horaFin.isAfter(disponibilidad.getHoraHasta())) {
+        if (duracion == null || duracion <= 0) {
+            throw new IllegalArgumentException(
+                    "El paquete no tiene una duración válida"
+            );
+        }
+
+        /*
+         * Se compara en segundos desde las 00:00 porque LocalTime.plusMinutes
+         * da la vuelta a medianoche (23:30 + 60 min = 00:30).
+         */
+        long inicio = horaInicio.toSecondOfDay();
+        long fin = segundoDeTermino(horaInicio, duracion);
+
+        if (inicio < disponibilidad.getHoraDesde().toSecondOfDay() ||
+                fin > disponibilidad.getHoraHasta().toSecondOfDay()) {
 
             throw new RuntimeException(
                     "El horario seleccionado está fuera de la disponibilidad del artista"
@@ -118,17 +139,18 @@ public class ReservaService {
                 continue;
             }
 
-            LocalTime inicioExistente =
-                    existente.getHoraEvento();
+            long inicioExistente =
+                    existente.getHoraEvento().toSecondOfDay();
 
-            LocalTime finExistente =
-                    inicioExistente.plusMinutes(
+            long finExistente =
+                    segundoDeTermino(
+                            existente.getHoraEvento(),
                             existente.getDuracionMinutos()
                     );
 
             boolean seCruzan =
-                    horaInicio.isBefore(finExistente)
-                            && horaFin.isAfter(inicioExistente);
+                    inicio < finExistente
+                            && fin > inicioExistente;
 
             if (seCruzan) {
                 throw new IllegalStateException(
@@ -205,6 +227,11 @@ public class ReservaService {
          */
 
         return toResponse(guardada);
+    }
+
+    // Puede superar 86.400 si termina después de medianoche.
+    private long segundoDeTermino(LocalTime inicio, int duracionMinutos) {
+        return inicio.toSecondOfDay() + duracionMinutos * 60L;
     }
 
     private String generarFolio() {
